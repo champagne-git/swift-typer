@@ -1,17 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { useTyperStore } from '../stores/typer'
+import { storeToRefs } from 'pinia'
+
+const store = useTyperStore()
+const { inputText } = storeToRefs(store)
 
 // 定义组件的 emits 和 props
-const emits = defineEmits(['update:inputText', 'onKeyUp', 'onKeyDown'])
+const emits = defineEmits(['onKeyUp', 'onKeyDown'])
 const props = defineProps({
-  inputText: String,
-  stats: Object
-})
-
-// 创建计算属性，用于双向绑定
-const value = computed({
-  get: () => props.inputText,
-  set: (newValue) => emits('update:inputText', newValue)
+  isFinished: Boolean
 })
 
 // 处理键盘抬起事件
@@ -39,9 +37,9 @@ defineExpose({
   <div class="input-wrapper">
     <textarea
       ref="textareaRef"
-      v-model="value"
+      v-model="inputText"
       placeholder="在这里开始输入..."
-      :disabled="props.stats.isFinished"
+      :disabled="props.isFinished"
       @keyup="onKeyUp"
       @keydown="emits('onKeyDown')"
       @paste="(e) => e.preventDefault()"

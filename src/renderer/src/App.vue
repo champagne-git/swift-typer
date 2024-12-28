@@ -4,11 +4,19 @@ import StatsPanel from './components/StatsPanel.vue'
 import ArticlePanel from './components/ArticlePanel.vue'
 import InputPanel from './components/InputPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
+import { useTyperStore } from './stores/typer'
+import { storeToRefs } from 'pinia'
+import { ElMessage } from 'element-plus'
+import 'element-plus/theme-chalk/el-message.css'
 
-// 统计数据
+// Store and refs
+const store = useTyperStore()
+const { inputText, articleInfo } = storeToRefs(store)
+
+// Reactive state
+const startTime = ref(null)
+const isFinished = ref(false)
 const stats = reactive({
-  startTime: null,
-  isFinished: false,
   speed: 0,
   keysPerSecond: 0,
   keysPerChar: 0,
@@ -17,86 +25,80 @@ const stats = reactive({
   keyAccuracy: 0
 })
 
-// 文章信息
-const articleInfo = reactive({
-  content: '的一是了不在有个人这',
-  count: 10,
-  paragraph: 1
-})
-
-// 引用和状态
+// Refs and state
 const inputPanelRef = ref(null)
 const articlePanelRef = ref(null)
-const inputText = ref('')
 let timerInterval = null
 let totalClicks = 0
 let backspaceCount = 0
 
-// 加载文章
-const loadArticle = (article) => {
-  Object.assign(articleInfo, article)
-  reset()
-  nextTick(() => {
-    inputPanelRef.value.focus()
-  })
+// Load article from clipboard
+const loadArticle = async () => {
+  try {
+    const article = await navigator.clipboard.readText()
+    store.loadArticle(article)
+    reset()
+    nextTick(() => inputPanelRef.value.focus())
+    ElMessage.success('载文成功')
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('读取剪贴板失败')
+  }
 }
 
-// 监听输入文本变化
-watch(inputText, async (newVal, oldVal) => {
+// Watch input text changes
+watch(inputText, (newVal, oldVal) => {
   const newLength = newVal.length
   const oldLength = oldVal.length
 
-  // 开始跟打
-  if (oldLength === 0 && newLength > 0) {
-    stats.startTime = new Date()
-    timerInterval = setInterval(updateStats, 100)
+  if (oldLength === 0 && newLength > 0 && !startTime.value) {
+    startTyping()
   }
 
-  // 回改
   if (newLength < oldLength) stats.correctionCount++
 
-  // 结束跟打
-  if (newLength === articleInfo.count) {
-    stats.isFinished = true
-    clearInterval(timerInterval)
-    updateStats()
-    await navigator.clipboard.writeText(getGrade())
+  if (newLength === articleInfo.value.count) {
+    finishTyping()
   }
 
-  // 自动滚动
   handleAutoScroll(newLength)
 })
 
-// 处理自动滚动
+// Start typing session
+const startTyping = () => {
+  startTime.value = new Date()
+  timerInterval = setInterval(updateStats, 100)
+}
+
+// Finish typing session
+const finishTyping = async () => {
+  isFinished.value = true
+  clearInterval(timerInterval)
+  updateStats()
+  await navigator.clipboard.writeText(getGrade())
+}
+
+// Handle auto-scroll
 const handleAutoScroll = (newLength) => {
   const articleElement = articlePanelRef.value.getArticleElement()
   const charsElement = articlePanelRef.value.getContentElement()
 
-  if (articleElement.clientHeight + articleElement.scrollTop === articleElement.scrollHeight) {
-    return // 到底则不滚动
-  }
+  if (articleElement.clientHeight + articleElement.scrollTop === articleElement.scrollHeight) return
 
-  if (newLength > 0 && newLength <= articleInfo.count) {
+  if (newLength > 0 && newLength <= articleInfo.value.count) {
     const currentChar = charsElement[newLength - 1]
     if (currentChar) {
       const charRect = currentChar.getBoundingClientRect()
       const articleRect = articleElement.getBoundingClientRect()
-
-      if (charRect.top > (articleRect.bottom - articleRect.top) / 2) {
-        const style = window.getComputedStyle(currentChar)
-        const lineHeight = parseFloat(style.lineHeight)
-
-        // 平滑滚动一行的距离
-        articleElement.scrollBy({
-          top: lineHeight,
-          behavior: 'auto'
-        })
+      if (charRect.top > (articleRect.bottom - articleRect.top) / 1.5) {
+        const lineHeight = parseFloat(window.getComputedStyle(currentChar).lineHeight)
+        articleElement.scrollBy({ top: lineHeight, behavior: 'auto' })
       }
     }
   }
 }
 
-// 按键事件处理
+// Key event handlers
 const onKeyUp = () => {
   backspaceCount++
   stats.backspaceCount = backspaceCount - stats.correctionCount
@@ -104,11 +106,14 @@ const onKeyUp = () => {
 
 const onKeyDown = () => totalClicks++
 
-// 重置
+// Reset everything
 const reset = () => {
+  store.clear()
+  startTime.value = null
+  isFinished.value = false
+  totalClicks = 0
+  backspaceCount = 0
   Object.assign(stats, {
-    startTime: null,
-    isFinished: false,
     speed: 0,
     keysPerSecond: 0,
     keysPerChar: 0,
@@ -116,24 +121,19 @@ const reset = () => {
     backspaceCount: 0,
     keyAccuracy: 0
   })
-  inputText.value = ''
-  totalClicks = 0
-  backspaceCount = 0
   if (timerInterval) {
     clearInterval(timerInterval)
     timerInterval = null
   }
-  // 自动获取焦点
   nextTick(() => {
     inputPanelRef.value.focus()
+    articlePanelRef.value.getArticleElement().scrollTop = 0
   })
-  // 滚动条置顶
-  articlePanelRef.value.getArticleElement().scrollTop = 0
 }
 
-// 更新统计数据
+// Update statistics
 const updateStats = () => {
-  const timePassed = new Date() - stats.startTime
+  const timePassed = new Date() - startTime.value
   const totalChars = inputText.value.length
 
   stats.speed = (totalChars / (timePassed / (1000 * 60))).toFixed(2)
@@ -142,9 +142,9 @@ const updateStats = () => {
   // stats.keyAccuracy = (((totalClicks - backspaceCount) / totalClicks) * 100).toFixed(1)
 }
 
-// 获取成绩
+// Get final grade
 const getGrade = () => {
-  return `第${articleInfo.paragraph}段 速度${stats.speed} 击键${stats.keysPerSecond} 码长${stats.keysPerChar} 回改${stats.correctionCount} 退格${stats.backspaceCount} 键数${totalClicks} 键准${stats.keyAccuracy}% 小马跟打器v0.1`
+  return `第${articleInfo.value.segment}段 速度${stats.speed} 击键${stats.keysPerSecond} 码长${stats.keysPerChar} 回改${stats.correctionCount} 退格${stats.backspaceCount} 键数${totalClicks} 键准${stats.keyAccuracy}% 小马跟打器v0.1`
 }
 </script>
 
@@ -152,11 +152,11 @@ const getGrade = () => {
   <div class="container">
     <StatsPanel class="stats-panel" :stats="stats" @load-article="loadArticle" @reset="reset" />
     <div class="typing-panel">
-      <ArticlePanel ref="articlePanelRef" :article-info="articleInfo" :input-text="inputText" />
+      <ArticlePanel ref="articlePanelRef" />
       <InputPanel
         ref="inputPanelRef"
-        v-model:input-text="inputText"
         :stats="stats"
+        :is-finished="isFinished"
         @on-key-up="onKeyUp"
         @on-key-down="onKeyDown"
       />

@@ -1,16 +1,15 @@
 <script setup>
 import { reactive, ref } from 'vue'
+import { useTyperStore } from '../stores/typer'
+import { storeToRefs } from 'pinia'
 
-// 定义组件的 emits 和 props
-const props = defineProps({
-  articleInfo: Object,
-  inputText: String
-})
+const store = useTyperStore()
+const { inputText, articleInfo } = storeToRefs(store)
 
 // 获取字符的样式类
 const getCharClass = (index) => {
-  if (index < props.inputText.length) {
-    return props.inputText[index] === props.articleInfo.content[index] ? 'correct' : 'error'
+  if (index < inputText.value.length) {
+    return inputText.value[index] === articleInfo.value.content[index] ? 'correct' : 'error'
   }
   return ''
 }
@@ -31,7 +30,7 @@ defineExpose({
 <template>
   <div ref="articleRef" class="article-wrapper">
     <span
-      v-for="(char, index) in props.articleInfo.content"
+      v-for="(char, index) in articleInfo.content"
       :ref="
         (el) => {
           if (el) charRefs[index] = el
