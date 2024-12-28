@@ -1,36 +1,22 @@
 <script setup>
-import { onMounted } from 'vue'
+import { useTyperStore } from '../stores/typer'
+import { storeToRefs } from 'pinia'
+
+const store = useTyperStore()
+const { drawer, dialogVisible } = storeToRefs(store)
 
 // 定义组件的 emits 和 props
 const emits = defineEmits(['loadArticle', 'reset'])
 const props = defineProps({
   stats: Object
 })
-
-// 处理键盘事件
-const handleKeyDown = (event) => {
-  switch (event.key) {
-    case 'F3':
-      event.preventDefault()
-      emits('reset')
-      break
-    case 'F4':
-      event.preventDefault()
-      emits('loadArticle')
-      break
-  }
-}
-
-// 组件挂载时添加键盘事件监听
-onMounted(() => {
-  window.addEventListener('keydown', handleKeyDown)
-})
 </script>
 
 <template>
   <div class="stats-wrapper">
     <div class="settings">
-      <el-button>设置</el-button>
+      <el-button @click="drawer = true">设置</el-button>
+      <el-button @click="dialogVisible = true">发文</el-button>
       <el-button @click="emits('loadArticle')">载文</el-button>
       <el-button @click="emits('reset')">重打</el-button>
     </div>

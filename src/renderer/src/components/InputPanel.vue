@@ -12,13 +12,6 @@ const props = defineProps({
   isFinished: Boolean
 })
 
-// 处理键盘抬起事件
-const onKeyUp = (event) => {
-  if (event.key === 'Backspace') {
-    emits('onKeyUp')
-  }
-}
-
 // 创建对 textarea 元素的引用
 const textareaRef = ref(null)
 
@@ -40,7 +33,7 @@ defineExpose({
       v-model="inputText"
       placeholder="在这里开始输入..."
       :disabled="props.isFinished"
-      @keyup="onKeyUp"
+      @keyup="(e) => emits('onKeyUp', e)"
       @keydown="emits('onKeyDown')"
       @paste="(e) => e.preventDefault()"
     ></textarea>

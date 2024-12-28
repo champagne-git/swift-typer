@@ -4,10 +4,26 @@ import StatsPanel from './components/StatsPanel.vue'
 import ArticlePanel from './components/ArticlePanel.vue'
 import InputPanel from './components/InputPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
+import Settings from './components/Settings.vue'
+import SendArticle from './components/SendArticle.vue'
 import { useTyperStore } from './stores/typer'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import 'element-plus/theme-chalk/el-message.css'
+import { useHotkeys } from './useHotkeys'
+
+// 组合键
+useHotkeys({
+  f3: () => {
+    reset()
+  },
+  f4: () => {
+    loadArticle()
+  },
+  'ctrl+l': () => {
+    store.shuffle()
+  }
+})
 
 // Store and refs
 const store = useTyperStore()
@@ -18,11 +34,13 @@ const startTime = ref(null)
 const isFinished = ref(false)
 const stats = reactive({
   speed: 0,
+  realSpeed: 0,
   keysPerSecond: 0,
   keysPerChar: 0,
   correctionCount: 0,
   backspaceCount: 0,
-  keyAccuracy: 0
+  keyAccuracy: 0,
+  wrongCharCount: 0
 })
 
 // Refs and state
@@ -54,13 +72,13 @@ watch(inputText, (newVal, oldVal) => {
   if (oldLength === 0 && newLength > 0 && !startTime.value) {
     startTyping()
   }
-
-  if (newLength < oldLength) stats.correctionCount++
-
   if (newLength === articleInfo.value.count) {
     finishTyping()
   }
-
+  if (newLength < oldLength && startTime.value) {
+    // 回退
+    stats.correctionCount += oldLength - newLength
+  }
   handleAutoScroll(newLength)
 })
 
@@ -75,6 +93,8 @@ const finishTyping = async () => {
   isFinished.value = true
   clearInterval(timerInterval)
   updateStats()
+  const charsElement = articlePanelRef.value.getContentElement()
+  stats.wrongCharCount = Object.values(charsElement).filter((el) => el.className === 'error').length
   await navigator.clipboard.writeText(getGrade())
 }
 
@@ -99,16 +119,18 @@ const handleAutoScroll = (newLength) => {
 }
 
 // Key event handlers
-const onKeyUp = () => {
-  backspaceCount++
-  stats.backspaceCount = backspaceCount - stats.correctionCount
+const onKeyUp = (e) => {
+  if (e.key === 'Backspace') {
+    backspaceCount++
+    stats.backspaceCount = backspaceCount - stats.correctionCount
+  }
 }
 
 const onKeyDown = () => totalClicks++
 
 // Reset everything
 const reset = () => {
-  store.clear()
+  inputText.value = ''
   startTime.value = null
   isFinished.value = false
   totalClicks = 0
@@ -119,7 +141,8 @@ const reset = () => {
     keysPerChar: 0,
     correctionCount: 0,
     backspaceCount: 0,
-    keyAccuracy: 0
+    keyAccuracy: 0,
+    wrongCharCount: 0
   })
   if (timerInterval) {
     clearInterval(timerInterval)
@@ -144,7 +167,7 @@ const updateStats = () => {
 
 // Get final grade
 const getGrade = () => {
-  return `第${articleInfo.value.segment}段 速度${stats.speed} 击键${stats.keysPerSecond} 码长${stats.keysPerChar} 回改${stats.correctionCount} 退格${stats.backspaceCount} 键数${totalClicks} 键准${stats.keyAccuracy}% 小马跟打器v0.1`
+  return `第${articleInfo.value.segment}段 速度${stats.speed} 击键${stats.keysPerSecond} 码长${stats.keysPerChar} 回改${stats.correctionCount} 退格${stats.backspaceCount} 错字${stats.wrongCharCount} 键数${totalClicks} 键准${stats.keyAccuracy}% 小马跟打器v0.1`
 }
 </script>
 
@@ -163,6 +186,8 @@ const getGrade = () => {
     </div>
     <HistoryPanel class="history-panel" />
   </div>
+  <Settings />
+  <SendArticle />
 </template>
 
 <style lang="scss">

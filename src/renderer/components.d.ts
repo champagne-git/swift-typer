@@ -8,10 +8,14 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ArticlePanel: typeof import('./src/components/ArticlePanel.vue')['default']
-    ControlPanel: typeof import('./src/components/ControlPanel.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElDialog: typeof import('element-plus/es')['ElDialog']
+    ElDrawer: typeof import('element-plus/es')['ElDrawer']
     HistoryPanel: typeof import('./src/components/HistoryPanel.vue')['default']
     InputPanel: typeof import('./src/components/InputPanel.vue')['default']
+    Send: typeof import('./src/components/Send.vue')['default']
+    SendArticle: typeof import('./src/components/SendArticle.vue')['default']
+    Settings: typeof import('./src/components/Settings.vue')['default']
     StatsPanel: typeof import('./src/components/StatsPanel.vue')['default']
   }
 }

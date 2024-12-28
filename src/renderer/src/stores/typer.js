@@ -12,6 +12,12 @@ export const useTyperStore = defineStore('typer', () => {
   // 输入文本
   const inputText = ref('')
 
+  // 抽屉
+  const drawer = ref(false)
+
+  // 发文
+  const dialogVisible = ref(false)
+
   // 从剪贴板加载文章
   const loadArticle = (article) => {
     const splitArticle = article.trim().split(/\r\n|\n|\r/)
@@ -36,8 +42,14 @@ export const useTyperStore = defineStore('typer', () => {
     return match ? parseInt(match[1]) : 1
   }
 
-  // 重置输入
-  const clear = () => (inputText.value = '')
+  // 乱序
+  const shuffle = () => {
+    const text = articleInfo.content
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('')
+    articleInfo.content = text
+  }
 
-  return { articleInfo, inputText, loadArticle, clear }
+  return { articleInfo, inputText, drawer, dialogVisible, loadArticle, shuffle }
 })
