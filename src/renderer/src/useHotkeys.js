@@ -1,4 +1,3 @@
-// useHotkeys.js
 import { onMounted, onUnmounted } from 'vue'
 
 export const useHotkeys = (keyMap) => {

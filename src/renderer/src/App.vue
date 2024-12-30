@@ -57,7 +57,7 @@ const loadArticle = async () => {
     store.loadArticle(article)
     reset()
     nextTick(() => inputPanelRef.value.focus())
-    ElMessage.success('载文成功')
+    // ElMessage.success('载文成功')
   } catch (error) {
     console.error(error)
     ElMessage.error('读取剪贴板失败')
@@ -162,7 +162,7 @@ const updateStats = () => {
   stats.speed = (totalChars / (timePassed / (1000 * 60))).toFixed(2)
   stats.keysPerSecond = (totalClicks / (timePassed / 1000)).toFixed(2)
   stats.keysPerChar = (totalClicks / totalChars).toFixed(2)
-  // stats.keyAccuracy = (((totalClicks - backspaceCount) / totalClicks) * 100).toFixed(1)
+  stats.keyAccuracy = (((totalClicks - backspaceCount * 2) / totalClicks) * 100).toFixed(1)
 }
 
 // Get final grade

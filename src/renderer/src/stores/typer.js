@@ -4,9 +4,9 @@ import { defineStore } from 'pinia'
 export const useTyperStore = defineStore('typer', () => {
   // 文章信息
   const articleInfo = reactive({
-    content: '的一是了不在有个人这',
-    count: 10,
-    segment: 1
+    content: '',
+    count: 0,
+    segment: 0
   })
 
   // 输入文本
