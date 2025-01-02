@@ -2,6 +2,9 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { FileManager } from './fileManager'
+
+let fileManager = null
 
 function createWindow() {
   // Create the browser window.
@@ -13,7 +16,9 @@ function createWindow() {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: true,
+      contextIsolation: false
     }
   })
 
@@ -52,6 +57,31 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Initialize FileManager
+  const userFolderPath = join(app.getPath('documents'), 'swift_typer')
+  fileManager = new FileManager(userFolderPath)
+
+  // Set up IPC handlers for file operations
+  ipcMain.handle('get-files', async () => {
+    return await fileManager.getFiles()
+  })
+
+  ipcMain.handle('read-file-info', async (event, filename) => {
+    return await fileManager.getFileInfo(filename)
+  })
+
+  ipcMain.handle('read-file-chunk', async (event, filename, start, end, encoding) => {
+    return await fileManager.readFileChunk(filename, start, end, encoding)
+  })
+
+  ipcMain.handle('save-file-encoding', (event, { filename, encoding }) => {
+    fileManager.saveFileEncoding(filename, encoding)
+  })
+
+  ipcMain.handle('get-file-encoding', (event, filename) => {
+    return fileManager.getFileEncoding(filename)
+  })
 
   createWindow()
 

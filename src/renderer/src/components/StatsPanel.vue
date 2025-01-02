@@ -1,14 +1,29 @@
 <script setup>
-import { useTyperStore } from '../stores/typer'
+import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useTyperStore } from '../stores/typer'
+import { useFileStore } from '../stores/file'
 
 const store = useTyperStore()
 const { drawer, dialogVisible } = storeToRefs(store)
+
+const fileStore = useFileStore()
+const { currentFile } = storeToRefs(fileStore)
 
 // 定义组件的 emits 和 props
 const emits = defineEmits(['loadArticle', 'reset'])
 const props = defineProps({
   stats: Object
+})
+
+const sendArticle = async () => {
+  dialogVisible.value = true
+  await fileStore.readFile(currentFile.value)
+  fileStore.getTextSegment()
+}
+
+onMounted(() => {
+  fileStore.initialize()
 })
 </script>
 
@@ -16,7 +31,7 @@ const props = defineProps({
   <div class="stats-wrapper">
     <div class="settings">
       <el-button @click="drawer = true">设置</el-button>
-      <el-button @click="dialogVisible = true">发文</el-button>
+      <el-button @click="sendArticle">发文</el-button>
       <el-button @click="emits('loadArticle')">载文</el-button>
       <el-button @click="emits('reset')">重打</el-button>
     </div>

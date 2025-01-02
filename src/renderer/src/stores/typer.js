@@ -18,7 +18,14 @@ export const useTyperStore = defineStore('typer', () => {
   // 发文
   const dialogVisible = ref(false)
 
-  // 从剪贴板加载文章
+  // 历史记录
+  const history = reactive({
+    total: 0,
+    today: 0,
+    lastSavedDate: ''
+  })
+
+  // 加载文章
   const loadArticle = (article) => {
     const splitArticle = article.trim().split(/\r\n|\n|\r/)
 
@@ -51,5 +58,38 @@ export const useTyperStore = defineStore('typer', () => {
     articleInfo.content = text
   }
 
-  return { articleInfo, inputText, drawer, dialogVisible, loadArticle, shuffle }
+  // 更新历史记录
+  const updateHistory = (value = 0) => {
+    history.total += value
+
+    const today = new Date().toDateString()
+    if (today !== history.lastSavedDate) {
+      history.today = 0
+      history.lastSavedDate = today
+    }
+    history.today += value
+    localStorage.setItem('history', JSON.stringify(history))
+  }
+
+  const readHistory = () => {
+    const savedData = JSON.parse(localStorage.getItem('history') || '{}')
+    Object.assign(history, savedData)
+    const today = new Date().toDateString()
+    if (today !== history.lastSavedDate) {
+      history.today = 0
+      history.lastSavedDate = today
+    }
+  }
+
+  return {
+    articleInfo,
+    inputText,
+    drawer,
+    dialogVisible,
+    history,
+    loadArticle,
+    shuffle,
+    updateHistory,
+    readHistory
+  }
 })

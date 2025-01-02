@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, watch, nextTick } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted } from 'vue'
 import StatsPanel from './components/StatsPanel.vue'
 import ArticlePanel from './components/ArticlePanel.vue'
 import InputPanel from './components/InputPanel.vue'
@@ -10,7 +10,7 @@ import { useTyperStore } from './stores/typer'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import 'element-plus/theme-chalk/el-message.css'
-import { useHotkeys } from './useHotkeys'
+import { useHotkeys } from './hooks/useHotkeys'
 
 // 组合键
 useHotkeys({
@@ -49,6 +49,12 @@ const articlePanelRef = ref(null)
 let timerInterval = null
 let totalClicks = 0
 let backspaceCount = 0
+let typedChars = 0
+
+onMounted(() => {
+  store.readHistory()
+  // store.updateHistory()
+})
 
 // Load article from clipboard
 const loadArticle = async () => {
@@ -79,6 +85,9 @@ watch(inputText, (newVal, oldVal) => {
     // 回退
     stats.correctionCount += oldLength - newLength
   }
+  if (newLength > oldLength) {
+    typedChars += newLength - oldLength
+  }
   handleAutoScroll(newLength)
 })
 
@@ -93,6 +102,7 @@ const finishTyping = async () => {
   isFinished.value = true
   clearInterval(timerInterval)
   updateStats()
+  store.updateHistory(typedChars)
   const charsElement = articlePanelRef.value.getContentElement()
   stats.wrongCharCount = Object.values(charsElement).filter((el) => el.className === 'error').length
   await navigator.clipboard.writeText(getGrade())
@@ -130,11 +140,13 @@ const onKeyDown = () => totalClicks++
 
 // Reset everything
 const reset = () => {
+  store.updateHistory(typedChars)
   inputText.value = ''
   startTime.value = null
   isFinished.value = false
   totalClicks = 0
   backspaceCount = 0
+  typedChars = 0
   Object.assign(stats, {
     speed: 0,
     keysPerSecond: 0,
@@ -167,7 +179,7 @@ const updateStats = () => {
 
 // Get final grade
 const getGrade = () => {
-  return `第${articleInfo.value.segment}段 速度${stats.speed} 击键${stats.keysPerSecond} 码长${stats.keysPerChar} 回改${stats.correctionCount} 退格${stats.backspaceCount} 错字${stats.wrongCharCount} 键数${totalClicks} 键准${stats.keyAccuracy}% 小马跟打器v0.1`
+  return `第${articleInfo.value.segment}段 速度${stats.speed} 击键${stats.keysPerSecond} 码长${stats.keysPerChar} 回改${stats.correctionCount} 退格${stats.backspaceCount} 错字${stats.wrongCharCount} 键数${totalClicks} 键准${stats.keyAccuracy}% 小马跟打器v1.0.0`
 }
 </script>
 
